@@ -1,0 +1,470 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>心情日记</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        }
+        
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+            color: #333;
+        }
+        
+        .container {
+            max-width: 400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            overflow: hidden;
+        }
+        
+        .header {
+            background: #5b6bf0;
+            color: white;
+            padding: 20px;
+            text-align: center;
+        }
+        
+        .header h1 {
+            font-size: 1.5rem;
+            font-weight: 600;
+        }
+        
+        .date-display {
+            margin-top: 5px;
+            opacity: 0.9;
+            font-size: 0.9rem;
+        }
+        
+        .mood-selector {
+            display: flex;
+            justify-content: space-around;
+            padding: 20px;
+            background: #f8f9fa;
+            flex-wrap: wrap;
+        }
+        
+        .mood-btn {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            border: none;
+            font-size: 1.8rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            background: white;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            margin: 5px;
+        }
+        
+        .mood-btn .label {
+            font-size: 0.7rem;
+            margin-top: 2px;
+            color: #666;
+        }
+        
+        .mood-btn:hover {
+            transform: scale(1.1);
+        }
+        
+        .mood-btn.selected {
+            transform: scale(1.15);
+            box-shadow: 0 5px 15px rgba(91, 107, 240, 0.3);
+            border: 2px solid #5b6bf0;
+        }
+        
+        .text-area {
+            padding: 20px;
+            position: relative;
+        }
+        
+        textarea {
+            width: 100%;
+            height: 120px;
+            border: 1px solid #e0e0e0;
+            border-radius: 10px;
+            padding: 15px;
+            font-size: 1rem;
+            resize: none;
+            outline: none;
+            transition: border-color 0.3s;
+        }
+        
+        textarea:focus {
+            border-color: #5b6bf0;
+        }
+        
+        .char-count {
+            text-align: right;
+            font-size: 0.8rem;
+            color: #666;
+            margin-top: 5px;
+        }
+        
+        .actions {
+            padding: 0 20px 20px;
+            display: flex;
+            gap: 10px;
+        }
+        
+        .btn {
+            flex: 1;
+            padding: 12px;
+            border: none;
+            border-radius: 10px;
+            font-size: 1rem;
+            fontWeight: 500;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 5px;
+        }
+        
+        .btn-primary {
+            background: #5b6bf0;
+            color: white;
+        }
+        
+        .btn-secondary {
+            background: #f8f9fa;
+            color: #666;
+        }
+        
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+        
+        .diary-list {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: white;
+            z-index: 1000;
+            padding: 20px;
+            overflow-y: auto;
+        }
+        
+        .list-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #eee;
+        }
+        
+        .list-header h2 {
+            color: #333;
+        }
+        
+        .btn-icon {
+            background: none;
+            border: none;
+            font-size: 1.2rem;
+            cursor: pointer;
+            padding: 5px;
+        }
+        
+        .diary-item {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 10px;
+            border-left: 4px solid #5b6bf0;
+        }
+        
+        .diary-date {
+            font-size: 0.8rem;
+            color: #666;
+            margin-bottom: 5px;
+        }
+        
+        .diary-mood {
+            font-size: 1.2rem;
+            margin-right: 5px;
+        }
+        
+        .empty-state {
+            text-align: center;
+            padding: 40px 20px;
+            color: #666;
+        }
+        
+        .hidden {
+            display: none;
+        }
+        
+        .notification {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #4CAF50;
+            color: white;
+            padding: 10px 20px;
+            border-radius: 5px;
+            box-shadow: 0 3px 10px rgba(0,0,0,0.2);
+            z-index: 1001;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>今天心情如何？</h1>
+            <div class="date-display" id="currentDate"></div>
+        </div>
+        
+        <div class="main-content">
+            <div class="mood-selector">
+                <button class="mood-btn" data-mood="😊">
+                    <span class="emoji">😊</span>
+                    <span class="label">开心</span>
+                </button>
+                <button class="mood-btn" data-mood="😐">
+                    <span class="emoji">😐</span>
+                    <span class="label">平静</span>
+                </button>
+                <button class="mood-btn" data-mood="😢">
+                    <span class="emoji">😢</span>
+                    <span class="label">难过</span>
+                </button>
+                <button class="mood-btn" data-mood="😡">
+                    <span class="emoji">😡</span>
+                    <span class="label">生气</span>
+                </button>
+                <button class="mood-btn" data-mood="🤩">
+                    <span class="emoji">🤩</span>
+                    <span class="label">兴奋</span>
+                </button>
+            </div>
+            
+            <div class="text-area">
+                <textarea placeholder="记录今天的心情和想法...（可选）" id="diaryText"></textarea>
+                <div class="char-count"><span id="charCount">0</span>/200</div>
+            </div>
+            
+            <div class="actions">
+                <button class="btn btn-secondary" id="viewHistory">
+                    <span class="btn-icon">📖</span>
+                    查看记录
+                </button>
+                <button class="btn btn-primary" id="saveEntry">
+                    <span class="btn-icon">💾</span>
+                    保存心情
+                </button>
+            </div>
+        </div>
+        
+        <div class="diary-list hidden" id="diaryList">
+            <div class="list-header">
+                <h2>心情记录</h2>
+                <button class="btn-icon" id="closeHistory">✕</button>
+            </div>
+            <div class="list-content" id="listContent">
+                <!-- 日记列表会动态生成 -->
+            </div>
+        </div>
+        
+        <div class="notification hidden" id="notification"></div>
+    </div>
+
+    <script>
+        class MoodDiary {
+            constructor() {
+                this.currentMood = null;
+                this.entries = this.loadEntries();
+                this.init();
+            }
+            
+            init() {
+                // 显示当前日期
+                this.updateDate();
+                
+                // 绑定心情选择事件
+                document.querySelectorAll('.mood-btn').forEach(btn => {
+                    btn.addEventListener('click', (e) => {
+                        this.selectMood(e.currentTarget.dataset.mood);
+                    });
+                });
+                
+                // 绑定保存事件
+                document.getElementById('saveEntry').addEventListener('click', () => {
+                    this.saveEntry();
+                });
+                
+                // 绑定查看记录事件
+                document.getElementById('viewHistory').addEventListener('click', () => {
+                    this.showHistory();
+                });
+                
+                // 绑定关闭记录事件
+                document.getElementById('closeHistory').addEventListener('click', () => {
+                    this.hideHistory();
+                });
+                
+                // 绑定字符计数
+                document.getElementById('diaryText').addEventListener('input', (e) => {
+                    this.updateCharCount(e.target.value);
+                });
+                
+                // 初始化显示
+                this.updateCharCount('');
+            }
+            
+            updateDate() {
+                const now = new Date();
+                const options = { 
+                    year: 'numeric', 
+                    month: 'long', 
+                    day: 'numeric',
+                    weekday: 'long'
+                };
+                document.getElementById('currentDate').textContent = 
+                    now.toLocaleDateString('zh-CN', options);
+            }
+            
+            selectMood(mood) {
+                this.currentMood = mood;
+                document.querySelectorAll('.mood-btn').forEach(btn => {
+                    btn.classList.remove('selected');
+                });
+                event.currentTarget.classList.add('selected');
+            }
+            
+            updateCharCount(text) {
+                const count = text.length;
+                document.getElementById('charCount').textContent = count;
+                
+                if (count > 200) {
+                    document.getElementById('charCount').style.color = '#ff4444';
+                } else {
+                    document.getElementById('charCount').style.color = '#666';
+                }
+            }
+            
+            saveEntry() {
+                const text = document.getElementById('diaryText').value.trim();
+                const mood = this.currentMood;
+                
+                if (!mood) {
+                    this.showNotification('请选择一个心情', 'error');
+                    return;
+                }
+                
+                if (text.length > 200) {
+                    this.showNotification('文字内容不能超过200字', 'error');
+                    return;
+                }
+                
+                const entry = {
+                    id: Date.now(),
+                    mood: mood,
+                    text: text,
+                    date: new Date().toLocaleString('zh-CN')
+                };
+                
+                this.entries.unshift(entry);
+                this.saveEntries();
+                this.clearForm();
+                this.showNotification('心情记录已保存！', 'success');
+            }
+            
+            clearForm() {
+                document.getElementById('diaryText').value = '';
+                document.querySelectorAll('.mood-btn').forEach(btn => {
+                    btn.classList.remove('selected');
+                });
+                this.currentMood = null;
+                this.updateCharCount('');
+            }
+            
+            showHistory() {
+                document.getElementById('diaryList').classList.remove('hidden');
+                this.updateHistoryView();
+            }
+            
+            hideHistory() {
+                document.getElementById('diaryList').classList.add('hidden');
+            }
+            
+            updateHistoryView() {
+                const listContent = document.getElementById('listContent');
+                
+                if (this.entries.length === 0) {
+                    listContent.innerHTML = `
+                        <div class="empty-state">
+                            <p>还没有任何记录</p>
+                            <p>开始记录你的心情吧！</p>
+                        </div>
+                    `;
+                    return;
+                }
+                
+                listContent.innerHTML = this.entries.map(entry => `
+                    <div class="diary-item">
+                        <div class="diary-date">${entry.date}</div>
+                        <div>
+                            <span class="diary-mood">${entry.mood}</span>
+                            ${entry.text || '<span style="color: #999">无文字内容</span>'}
+                        </div>
+                    </div>
+                `).join('');
+            }
+            
+            loadEntries() {
+                try {
+                    const saved = localStorage.getItem('moodDiary');
+                    return saved ? JSON.parse(saved) : [];
+                } catch (e) {
+                    return [];
+                }
+            }
+            
+            saveEntries() {
+                try {
+                    localStorage.setItem('moodDiary', JSON.stringify(this.entries));
+                } catch (e) {
+                    console.error('保存失败:', e);
+                }
+            }
+            
+            showNotification(message, type = 'info') {
+                const notification = document.getElementById('notification');
+                notification.textContent = message;
+                notification.style.background = type === 'error' ? '#ff4444' : 
+                                              type === 'success' ? '#4CAF50' : '#2196F3';
+                notification.classList.remove('hidden');
+                
+                setTimeout(() => {
+                    notification.classList.add('hidden');
+                }, 3000);
+            }
+        }
+        
+        // 初始化应用
+        document.addEventListener('DOMContentLoaded', () => {
+            new MoodDiary();
+        });
+    </script>
+</body>
+</html>
